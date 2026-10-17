@@ -1,0 +1,56 @@
+name: Tests
+
+# Fork-only workflow (this file does not exist upstream): the fork's gate for
+# every branch, and the place where the suite can be run on demand against any
+# ref without adding this file to that branch:
+#
+#   gh workflow run tests.yml --repo YangtseSu/EZ4Connect -f ref=<branch>
+
+on:
+  push:
+    branches: [ master, dev ]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag or SHA to test (default: the dispatched ref)"
+        required: false
+        type: string
+
+env:
+  QT_VERSION: "6.10.3"
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: "linux"
+          target: "desktop"
+          arch: "linux_gcc_64"
+          modules: "qt5compat qtpositioning qtserialport qtwebchannel qtwebengine"
+          cache: "true"
+          cache-key-prefix: "install-qt-action-linux_gcc_64"
+
+      - name: Configure tests
+        run: |
+          cmake -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -S . -B build
+
+      - name: Build tests
+        run: |
+          cmake --build build --config Release --parallel $(nproc)
+
+      - name: Run tests
+        run: |
+          ctest --test-dir build --build-config Release --output-on-failure
