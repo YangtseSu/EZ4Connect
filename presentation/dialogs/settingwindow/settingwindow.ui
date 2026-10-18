@@ -858,14 +858,14 @@
        </item>
        <item row="16" column="0" colspan="4">
         <layout class="QGridLayout" name="gridLayout_4">
-         <item row="1" column="0">
+         <item row="1" column="1">
           <widget class="QCheckBox" name="disableServerConfigCheckBox">
            <property name="text">
             <string>忽略服务器配置</string>
            </property>
           </widget>
          </item>
-         <item row="2" column="2">
+         <item row="3" column="0">
           <widget class="QCheckBox" name="tunCheckBox">
            <property name="text">
             <string>TUN 模式</string>
@@ -879,21 +879,21 @@
            </property>
           </widget>
          </item>
-         <item row="0" column="2">
+         <item row="1" column="0">
           <widget class="QCheckBox" name="skipDomainResourceCheckBox">
            <property name="text">
             <string>忽略域名资源</string>
            </property>
           </widget>
          </item>
-         <item row="1" column="1">
+         <item row="1" column="2">
           <widget class="QCheckBox" name="proxyAllCheckBox">
            <property name="text">
             <string>代理全部流量</string>
            </property>
           </widget>
          </item>
-         <item row="3" column="0">
+         <item row="3" column="1">
           <widget class="QCheckBox" name="routeCheckBox">
            <property name="toolTip">
             <string>TUN 模式下有效</string>
@@ -916,7 +916,7 @@
            </property>
           </widget>
          </item>
-         <item row="3" column="1">
+         <item row="3" column="2">
           <widget class="QCheckBox" name="dnsHijackCheckBox">
            <property name="toolTip">
             <string>TUN 模式下有效</string>
@@ -926,7 +926,7 @@
            </property>
           </widget>
          </item>
-         <item row="3" column="2">
+         <item row="4" column="0">
           <widget class="QCheckBox" name="fakeIPCheckBox">
            <property name="toolTip">
             <string>aTrust 协议 TUN 模式下有效</string>
@@ -936,14 +936,14 @@
            </property>
           </widget>
          </item>
-         <item row="4" column="0">
+         <item row="4" column="1">
           <widget class="QCheckBox" name="tcpTunnelModeCheckBox">
            <property name="text">
             <string>禁用 L3 隧道</string>
            </property>
           </widget>
          </item>
-         <item row="4" column="1">
+         <item row="4" column="2">
           <widget class="QCheckBox" name="autoDetectInterfaceCheckBox">
            <property name="toolTip">
             <string>自动检测并绑定 VPN 底层网络接口</string>
@@ -953,21 +953,21 @@
            </property>
           </widget>
          </item>
-         <item row="2" column="0">
+         <item row="2" column="1">
           <widget class="QCheckBox" name="zjuDefaultCheckBox">
            <property name="text">
             <string>ZJU 默认配置</string>
            </property>
           </widget>
          </item>
-         <item row="1" column="2">
+         <item row="2" column="0">
           <widget class="QCheckBox" name="disableDNSCheckBox">
            <property name="text">
             <string>禁用内部 DNS</string>
            </property>
           </widget>
          </item>
-         <item row="2" column="1">
+         <item row="2" column="2">
           <widget class="QCheckBox" name="credentialsAsArgumentsCheckBox">
            <property name="toolTip">
             <string>不勾选则凭据以环境变量传递</string>
