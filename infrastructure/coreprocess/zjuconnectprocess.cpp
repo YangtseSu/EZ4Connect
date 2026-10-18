@@ -143,6 +143,24 @@ void ZjuConnectProcess::processOutputLines(const QList<QByteArray> &lines)
         case CoreOutputEvent::SessionRequiresRelogin:
             emit sessionRequiresRelogin(CoreOutputParser::sessionReloginCode(line));
             break;
+        case CoreOutputEvent::SessionStateReported:
+        {
+            const SessionStateLine stateLine = parseSessionStateLine(line);
+            if (stateLine.valid)
+            {
+                emit sessionStateReported(stateLine);
+            }
+            break;
+        }
+        case CoreOutputEvent::KeepAliveReported:
+        {
+            const KeepAliveLine keepAliveLine = parseKeepAliveLine(line);
+            if (keepAliveLine.valid)
+            {
+                emit keepAliveReported(keepAliveLine);
+            }
+            break;
+        }
         case CoreOutputEvent::ClientFailed:
             emit error(ZJU_ERROR::CLIENT_FAILED);
             break;

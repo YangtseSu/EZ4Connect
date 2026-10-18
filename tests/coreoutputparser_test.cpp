@@ -38,6 +38,10 @@ bool recognizesCoreProtocol()
         // says a login is the only way back.
         {"aTrust session requires reauthentication (code=75500002)",
          CoreOutputEvent::SessionRequiresRelogin},
+        {"aTrust session state: online reason=logged in code=0",
+         CoreOutputEvent::SessionStateReported},
+        {"KeepAlive: OK status=200 target=http://intranet.example/ routed=tunnel",
+         CoreOutputEvent::KeepAliveReported},
         {"client setup error", CoreOutputEvent::ClientFailed},
         {"panic: runtime error", CoreOutputEvent::CorePanic},
         {"ordinary core output", CoreOutputEvent::None},

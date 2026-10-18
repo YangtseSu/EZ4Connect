@@ -26,6 +26,8 @@ enum class CoreOutputEvent
     AuthNotAvailable,
     AuthExpired,
     SessionRequiresRelogin,
+    SessionStateReported,
+    KeepAliveReported,
     ClientFailed,
     CorePanic,
 };

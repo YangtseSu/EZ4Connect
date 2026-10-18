@@ -86,6 +86,17 @@ CoreOutputEvent CoreOutputParser::parse(const QString &output)
     {
         return CoreOutputEvent::SessionRequiresRelogin;
     }
+    // What the session maintenance reports about itself, and what the keep-alive
+    // reports about each round: both are complete lines a caller is expected to
+    // follow, and the details are parsed outside this chain.
+    if (output.contains("aTrust session state: "))
+    {
+        return CoreOutputEvent::SessionStateReported;
+    }
+    if (output.contains("KeepAlive: "))
+    {
+        return CoreOutputEvent::KeepAliveReported;
+    }
     if (output.contains("client setup error"))
     {
         return CoreOutputEvent::ClientFailed;

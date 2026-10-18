@@ -117,6 +117,43 @@ ConnectionUiController::ConnectionUiController(
     );
     connect(
         connectionSession,
+        &ConnectionSession::keepAliveReported,
+        this,
+        [this](const KeepAliveLine &line)
+        {
+            // Keep-alive is what holds the session open, so an outage is worth a
+            // warning - but only once it has lasted a few rounds, and only once
+            // per outage: a recovered streak arms the next one.
+            if (keepAliveWarrantsWarning(line))
+            {
+                if (keepAliveWarningRaised)
+                {
+                    return;
+                }
+                keepAliveWarningRaised = true;
+                qWarning().noquote() << "保活连续失败：" << line.summary;
+                this->notificationHandler(
+                    "VPN",
+                    "保活失败，会话可能被服务器结束：\n" + line.summary,
+                    QSystemTrayIcon::MessageIcon::Warning
+                );
+                return;
+            }
+
+            if (line.ok && keepAliveWarningRaised)
+            {
+                keepAliveWarningRaised = false;
+                qInfo().noquote() << "保活已恢复：" << line.summary;
+                this->notificationHandler(
+                    "VPN",
+                    "保活已恢复。",
+                    QSystemTrayIcon::MessageIcon::Information
+                );
+            }
+        }
+    );
+    connect(
+        connectionSession,
         &ConnectionSession::reloginRequired,
         this,
         [this](int code)
@@ -386,6 +423,9 @@ void ConnectionUiController::startConnection(
     {
         return;
     }
+
+    // A new process has its own keep-alive streak.
+    keepAliveWarningRaised = false;
 
     connectButton->setText("断开服务器");
     trayConnectAction->setText("断开服务器");

@@ -5,6 +5,7 @@
 
 #include "core/connectionerror.h"
 #include "core/connectionprofile.h"
+#include "core/sessionstatus.h"
 
 class CoreProcess : public QObject
 {
@@ -27,6 +28,9 @@ signals:
     // The core says the portal ended the session and no recovery is left inside
     // the running process; `code` is the portal's own code when it printed one.
     void sessionRequiresRelogin(int code);
+    // What the session maintenance and the keep-alive report about themselves.
+    void sessionStateReported(const SessionStateLine &line);
+    void keepAliveReported(const KeepAliveLine &line);
     void graphCaptcha(const QString &graphFile);
     void smsCode(bool showSkipSecondaryAuthOption);
     void totpCode();
