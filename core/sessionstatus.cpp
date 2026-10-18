@@ -19,12 +19,13 @@ struct KeepAliveShape
 };
 
 const KeepAliveShape kKeepAliveShapes[] = {
-    {QRegularExpression(QStringLiteral("^OK status=[0-9]+ target=.* routed=")), true},
-    {QRegularExpression(QStringLiteral("^recovered after [0-9]+ failed rounds")), true},
-    {QRegularExpression(QStringLiteral("^target failure ")), false},
-    {QRegularExpression(QStringLiteral("^(session|transport|target) failure ")), false},
-    {QRegularExpression(QStringLiteral("^the session behind the tunnel is gone")), false},
-    {QRegularExpression(QStringLiteral("^no usable target for [0-9]+ consecutive rounds")), false},
+    // The core's application-traffic probe: a successful answer, an HTTP
+    // failure, a transport failure, or the remote-DNS fallback having no
+    // resolver. The old routed= field is not emitted any more.
+    {QRegularExpression(QStringLiteral("^OK status=[0-9]+ target=")), true},
+    {QRegularExpression(QStringLiteral("^target=.* status=[0-9]+")), false},
+    {QRegularExpression(QStringLiteral("^target=.* err=")), false},
+    {QRegularExpression(QStringLiteral("^No remote resolver available")), false},
 };
 }
 

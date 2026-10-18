@@ -60,61 +60,41 @@ bool parsesSessionStateLines()
 
 bool parsesKeepAliveRounds()
 {
+    // The current core prints no routed= field: a successful application probe
+    // is just the OK line.
     const KeepAliveLine ok = parseKeepAliveLine(
-        "KeepAlive: OK status=200 target=http://intranet.example/ routed=tunnel"
+        "KeepAlive: OK status=200 target=http://intranet.example/"
     );
     if (!ok.valid || !ok.ok)
     {
-        qCritical() << "parsesKeepAliveRounds failed on the tunnel round";
+        qCritical() << "parsesKeepAliveRounds failed on the OK round";
         return false;
     }
 
-    const KeepAliveLine direct = parseKeepAliveLine(
-        "KeepAlive: OK status=200 target=http://intranet.example/ routed=direct: "
-        "this request did not cross the tunnel and does not hold the session"
+    // The old line is still accepted; the parser only keys on the prefix.
+    const KeepAliveLine routed = parseKeepAliveLine(
+        "KeepAlive: OK status=200 target=http://intranet.example/ routed=tunnel"
     );
-    if (!direct.valid || !direct.ok)
+    if (!routed.valid || !routed.ok)
     {
-        qCritical() << "parsesKeepAliveRounds failed on the direct round";
+        qCritical() << "parsesKeepAliveRounds failed on the routed round";
         return false;
     }
 
-    const KeepAliveLine perRound = parseKeepAliveLine(
-        "KeepAlive: target failure target=http://intranet.example/ routed=denied "
-        "err=not in the granted resources, the tunnel refuses it"
-    );
-    if (!perRound.valid || perRound.ok)
-    {
-        qCritical() << "parsesKeepAliveRounds failed on the per-round failure";
-        return false;
-    }
-
-    const KeepAliveLine sessionGone = parseKeepAliveLine(
-        "KeepAlive: the session behind the tunnel is gone (target=http://intranet.example/ "
-        "code=10000004, 3 consecutive failed rounds)"
+    const KeepAliveLine httpFailure = parseKeepAliveLine(
+        "KeepAlive: target=http://intranet.example/ status=404"
     );
     const KeepAliveLine transport = parseKeepAliveLine(
-        "KeepAlive: transport failure for 4 consecutive rounds "
-        "(target=http://intranet.example/): dial tcp: i/o timeout"
+        "KeepAlive: target=http://intranet.example/ err=dial tcp: i/o timeout"
     );
-    const KeepAliveLine noTarget = parseKeepAliveLine(
-        "KeepAlive: no usable target for 5 consecutive rounds "
-        "(target=http://intranet.example/): http status 404"
+    const KeepAliveLine noResolver = parseKeepAliveLine(
+        "KeepAlive: No remote resolver available"
     );
-    if (!sessionGone.valid || sessionGone.ok
+    if (!httpFailure.valid || httpFailure.ok
         || !transport.valid || transport.ok
-        || !noTarget.valid || noTarget.ok)
+        || !noResolver.valid || noResolver.ok)
     {
         qCritical() << "parsesKeepAliveRounds failed on a failure report";
-        return false;
-    }
-
-    const KeepAliveLine recovered = parseKeepAliveLine(
-        "KeepAlive: recovered after 3 failed rounds (target=http://intranet.example/)"
-    );
-    if (!recovered.valid || !recovered.ok)
-    {
-        qCritical() << "parsesKeepAliveRounds failed on the recovery";
         return false;
     }
 
