@@ -1,5 +1,6 @@
 #include "coreoutputparser.h"
 
+#include <QRegularExpression>
 namespace
 {
 
@@ -50,6 +51,9 @@ constexpr OutputRule kOutputRules[] = {
     {"auth type/login domain combination not found", CoreOutputEvent::AuthNotAvailable, false, false},
     {"invalid SID", CoreOutputEvent::AuthExpired, false, false},
     {"l3-tunnel tunnel auth failed:", CoreOutputEvent::AuthExpired, false, false},
+    // The session ladder keeps the process alive after it gives up, so this line -
+    // unlike the two above - means a login is the only way back.
+    {"aTrust session requires reauthentication", CoreOutputEvent::SessionRequiresRelogin, false, false},
     {"client setup error", CoreOutputEvent::ClientFailed, false, false},
     {"panic", CoreOutputEvent::CorePanic, false, false},
 };
@@ -85,6 +89,18 @@ QString CoreOutputParser::graphCaptchaFile(const QString &output)
     }
 
     return output.mid(markerIndex + prefix.size()).trimmed();
+}
+
+int CoreOutputParser::sessionReloginCode(const QString &output)
+{
+    // The line is "aTrust session requires reauthentication (code=75500002)".
+    static const QRegularExpression codePattern(QStringLiteral("\\(code=([0-9]+)\\)"));
+    const QRegularExpressionMatch match = codePattern.match(output);
+    if (!match.hasMatch())
+    {
+        return 0;
+    }
+    return match.captured(1).toInt();
 }
 
 bool CoreOutputParser::hasInteractivePrompt(const QByteArray &output)

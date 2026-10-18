@@ -59,6 +59,9 @@ bool matchesEveryCoreLiteral()
          "client/atrust/auth", CoreOutputEvent::AuthNotAvailable, false},
         {"invalid SID", "client/atrust/auth", CoreOutputEvent::AuthExpired, false},
         {"l3-tunnel tunnel auth failed:", "client/atrust/l3tunnel.go", CoreOutputEvent::AuthExpired, false},
+        {"aTrust session requires reauthentication (code=75500002)",
+         "client/atrust/session_recovery.go setSessionState",
+         CoreOutputEvent::SessionRequiresRelogin, false},
         {"client setup error", "client/atrust", CoreOutputEvent::ClientFailed, false},
         {"panic: runtime error", "core runtime", CoreOutputEvent::CorePanic, false},
         {"ordinary core output", "", CoreOutputEvent::None, false},
@@ -136,6 +139,25 @@ bool extractsGraphCaptchaFileFromCoreOutput()
            ) == "C:\\Users\\alice\\graph_code.jpg"
         && CoreOutputParser::graphCaptchaFile("ordinary output").isEmpty();
 }
+
+bool extractsSessionReloginCodeAndNeverTreatsItAsAPrompt()
+{
+    const QByteArray reloginLine =
+        "2026/10/18 12:00:00 aTrust session requires reauthentication (code=75500002)";
+    if (CoreOutputParser::sessionReloginCode(QString::fromUtf8(reloginLine)) != 75500002
+        || CoreOutputParser::sessionReloginCode(
+               "aTrust session requires reauthentication"
+           ) != 0
+        || CoreOutputParser::sessionReloginCode("ordinary output") != 0)
+    {
+        qCritical() << "extractsSessionReloginCodeAndNeverTreatsItAsAPrompt failed on the code";
+        return false;
+    }
+
+    // The core is not waiting on stdin: answering this line would feed the login
+    // prompt's input to a process that asked for nothing.
+    return !CoreOutputParser::hasInteractivePrompt(reloginLine);
+}
 }
 
 int main(int argc, char *argv[])
@@ -145,6 +167,7 @@ int main(int argc, char *argv[])
                && preservesExistingFirstMatchPrecedence()
                && recognizesInteractivePromptsBeforeNewline()
                && extractsGraphCaptchaFileFromCoreOutput()
+               && extractsSessionReloginCodeAndNeverTreatsItAsAPrompt()
            ? 0
            : 1;
 }
