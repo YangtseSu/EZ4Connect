@@ -11,6 +11,7 @@
 #include "application/defaultsettings.h"
 #include "core/connectionprofile.h"
 #include "infrastructure/platform/autostart.h"
+#include "infrastructure/coreprocess/coreexecutable.h"
 #include "infrastructure/storage/applicationpaths.h"
 #include "presentation/presentationhelpers.h"
 #include "infrastructure/settings/profilemanager.h"
@@ -56,16 +57,18 @@ SettingWindow::SettingWindow(QWidget *parent, QSettings *inputSettings, const QS
             [&]()
             {
                 extraSettingWindow = new ExtraSettingWindow(this);
-                extraSettingWindow->setup(tcpPortForwarding, udpPortForwarding, customDNS, customProxyDomain, extraArguments);
+                // What the running core advertises decides which knobs can be
+                // passed, so the dialog can say so instead of storing a value
+                // that never reaches the command line.
+                extraSettingWindow->setup(
+                    extraSettings(),
+                    coreCapabilitiesFromFlags(CoreExecutable::supportedFlags())
+                );
 
                 connect(extraSettingWindow, &ExtraSettingWindow::applied, this,
-				[&](const QString& tcpForwarding, const QString& udpForwarding, const QString& customDNS_, const QString& customProxyDomain_, const QString& extraArg)
+                    [&](const ExtraSettings &applied)
                     {
-                        tcpPortForwarding = tcpForwarding;
-                        udpPortForwarding = udpForwarding;
-						customDNS = customDNS_;
-						customProxyDomain = customProxyDomain_;
-						extraArguments = extraArg;
+                        setExtraSettings(applied);
                     });
 
                 extraSettingWindow->show();
@@ -321,6 +324,9 @@ void SettingWindow::loadSettings()
 	customDNS = settings->value("ZJUConnect/CustomDNS").toString();
 	customProxyDomain = settings->value("ZJUConnect/CustomProxyDomain").toString();
     extraArguments = settings->value("ZJUConnect/ExtraArguments").toString();
+    sessionRefreshInterval = settings->value("ZJUConnect/SessionRefreshInterval", 0).toInt();
+    keepAliveInterval = settings->value("ZJUConnect/KeepAliveInterval", 0).toInt();
+    autoRelogin = settings->value("ZJUConnect/AutoRelogin", false).toBool();
 
     ui->routeCheckBox->setEnabled(ui->tunCheckBox->isChecked());
     ui->dnsHijackCheckBox->setEnabled(ui->tunCheckBox->isChecked());
@@ -444,6 +450,9 @@ void SettingWindow::applySettings()
     settings->setValue("ZJUConnect/CustomDNS", customDNS);
     settings->setValue("ZJUConnect/CustomProxyDomain", customProxyDomain);
     settings->setValue("ZJUConnect/ExtraArguments", extraArguments);
+    settings->setValue("ZJUConnect/SessionRefreshInterval", sessionRefreshInterval);
+    settings->setValue("ZJUConnect/KeepAliveInterval", keepAliveInterval);
+    settings->setValue("ZJUConnect/AutoRelogin", autoRelogin);
 
     settings->setValue(
         "Common/ConfigVersion",
@@ -460,6 +469,32 @@ void SettingWindow::updateKeepAliveTargetState()
         == keepAliveModeToString(KeepAliveMode::Url);
     ui->keepAliveUrlLineEdit->setEnabled(usesConfiguredTarget);
     ui->zjuConnectTabLabel6_4->setEnabled(usesConfiguredTarget);
+}
+
+ExtraSettings SettingWindow::extraSettings() const
+{
+    ExtraSettings values;
+    values.tcpPortForwarding = tcpPortForwarding;
+    values.udpPortForwarding = udpPortForwarding;
+    values.customDns = customDNS;
+    values.customProxyDomains = customProxyDomain;
+    values.extraArguments = extraArguments;
+    values.sessionRefreshInterval = sessionRefreshInterval;
+    values.keepAliveInterval = keepAliveInterval;
+    values.autoRelogin = autoRelogin;
+    return values;
+}
+
+void SettingWindow::setExtraSettings(const ExtraSettings &values)
+{
+    tcpPortForwarding = values.tcpPortForwarding;
+    udpPortForwarding = values.udpPortForwarding;
+    customDNS = values.customDns;
+    customProxyDomain = values.customProxyDomains;
+    extraArguments = values.extraArguments;
+    sessionRefreshInterval = values.sessionRefreshInterval;
+    keepAliveInterval = values.keepAliveInterval;
+    autoRelogin = values.autoRelogin;
 }
 
 bool SettingWindow::isAuthSettingChanged()

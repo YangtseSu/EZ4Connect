@@ -53,6 +53,7 @@ set(SOURCE_FILES
     infrastructure/coreprocess/coreoutputbuffer.cpp
     infrastructure/coreprocess/coreoutputparser.cpp
     core/connectionsessionstate.cpp
+    core/sessionstatus.cpp
     infrastructure/logging/applicationlogfile.cpp
     infrastructure/platform/autostart.cpp
     infrastructure/platform/privileges.cpp
@@ -196,10 +197,27 @@ if(BUILD_TESTING)
         application/coreprocess.h
         application/connectionsession.cpp
         core/connectionsessionstate.cpp
+        core/sessionstatus.cpp
     )
     target_include_directories(connectionsession_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     target_link_libraries(connectionsession_test Qt::Core)
     add_test(NAME connectionsession_test COMMAND connectionsession_test)
+
+    add_executable(sessionstatus_test
+        tests/sessionstatus_test.cpp
+        core/sessionstatus.cpp
+    )
+    target_include_directories(sessionstatus_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(sessionstatus_test Qt::Core)
+    add_test(NAME sessionstatus_test COMMAND sessionstatus_test)
+
+    add_executable(coreexecutable_test
+        tests/coreexecutable_test.cpp
+        infrastructure/coreprocess/coreexecutable.cpp
+    )
+    target_include_directories(coreexecutable_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(coreexecutable_test Qt::Core)
+    add_test(NAME coreexecutable_test COMMAND coreexecutable_test)
 
     add_executable(systemproxysession_test
         tests/systemproxysession_test.cpp

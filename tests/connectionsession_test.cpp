@@ -43,6 +43,16 @@ public:
         emit sessionRequiresRelogin(code);
     }
 
+    void reportSessionState(const SessionStateLine &line)
+    {
+        emit sessionStateReported(line);
+    }
+
+    void reportKeepAlive(const KeepAliveLine &line)
+    {
+        emit keepAliveReported(line);
+    }
+
     void requestSudoPassword()
     {
         emit askSudoPass();
@@ -207,6 +217,78 @@ bool sessionExpiryStopsTheCoreAndAsksForALogin()
     return true;
 }
 
+bool followsTheCoresSessionReports()
+{
+    auto *coreProcess = new FakeCoreProcess();
+    ConnectionSession session(coreProcess);
+    ConnectionProfile profile;
+    int statusChanges = 0;
+    int reloginCalls = 0;
+    QObject::connect(
+        &session,
+        &ConnectionSession::sessionStatusChanged,
+        [&]() { ++statusChanges; }
+    );
+    QObject::connect(
+        &session,
+        &ConnectionSession::reloginRequired,
+        [&](int) { ++reloginCalls; }
+    );
+
+    if (!session.start(profile, {true, 1000}))
+    {
+        qCritical() << "failed to start session for the session report case";
+        return false;
+    }
+    coreProcess->establishConnection();
+
+    coreProcess->reportSessionState(parseSessionStateLine(
+        "aTrust session state: renewing reason=session refresh code=0"
+    ));
+    if (session.sessionStatus().state != SessionMaintenanceState::Renewing
+        || statusChanges != 1)
+    {
+        qCritical() << "followsTheCoresSessionReports did not follow the renewal";
+        return false;
+    }
+
+    coreProcess->reportKeepAlive(parseKeepAliveLine(
+        "KeepAlive: OK status=200 target=http://intranet.example/ routed=tunnel"
+    ));
+    if (!session.sessionStatus().hasKeepAlive
+        || !session.sessionStatus().keepAlive.ok
+        || !session.sessionStatus().keepAlive.throughTunnel
+        || session.sessionStatus().keepAliveAt.isNull())
+    {
+        qCritical() << "followsTheCoresSessionReports did not keep the keep-alive result";
+        return false;
+    }
+
+    // The state line alone is enough: a core may print it without the greppable
+    // line, and its reason is what the user sees.
+    coreProcess->reportSessionState(parseSessionStateLine(
+        "aTrust session state: relogin-required reason=session refresh was refused code=0"
+    ));
+    if (reloginCalls != 1
+        || coreProcess->stopCalls != 1
+        || session.state() != ConnectionState::ReloginRequired
+        || session.sessionStatus().reason != "session refresh was refused")
+    {
+        qCritical() << "followsTheCoresSessionReports did not treat the state line as terminal";
+        return false;
+    }
+
+    // The greppable line that follows it is the same verdict and must not repeat
+    // the transition or stop the core twice.
+    coreProcess->requireRelogin(0);
+    if (reloginCalls != 1 || coreProcess->stopCalls != 1)
+    {
+        qCritical() << "followsTheCoresSessionReports repeated the terminal transition";
+        return false;
+    }
+    return true;
+}
+
 bool cancelledInteractiveInputSubmitsNewlineBeforeStopping()
 {
     auto *coreProcess = new FakeCoreProcess();
@@ -238,5 +320,6 @@ int main(int argc, char *argv[])
         && distinguishesInterruptedConnectionFromStartupFailure()
         && emptySudoPasswordStopsTheSession()
         && sessionExpiryStopsTheCoreAndAsksForALogin()
+        && followsTheCoresSessionReports()
         && cancelledInteractiveInputSubmitsNewlineBeforeStopping() ? 0 : 1;
 }

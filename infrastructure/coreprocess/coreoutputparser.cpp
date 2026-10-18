@@ -54,6 +54,11 @@ constexpr OutputRule kOutputRules[] = {
     // The session ladder keeps the process alive after it gives up, so this line -
     // unlike the two above - means a login is the only way back.
     {"aTrust session requires reauthentication", CoreOutputEvent::SessionRequiresRelogin, false, false},
+    // What the session maintenance reports about itself, and what the keep-alive
+    // reports about each round: both are complete lines a caller is expected to
+    // follow, and the details are parsed outside this table.
+    {"aTrust session state: ", CoreOutputEvent::SessionStateReported, false, false},
+    {"KeepAlive: ", CoreOutputEvent::KeepAliveReported, false, false},
     {"client setup error", CoreOutputEvent::ClientFailed, false, false},
     {"panic", CoreOutputEvent::CorePanic, false, false},
 };

@@ -1,6 +1,7 @@
 #include "zjuconnectprocess.h"
 #include "infrastructure/coreprocess/corecommandbuilder.h"
 #include "infrastructure/coreprocess/consoleoutputdecoder.h"
+#include "infrastructure/coreprocess/coreexecutable.h"
 #include "infrastructure/coreprocess/coreoutputparser.h"
 #include "infrastructure/platform/privileges.h"
 #include "infrastructure/storage/applicationpaths.h"
@@ -148,6 +149,24 @@ void ZjuConnectProcess::processOutputLines(const QList<QByteArray> &lines)
         case CoreOutputEvent::SessionRequiresRelogin:
             emit sessionRequiresRelogin(CoreOutputParser::sessionReloginCode(line));
             break;
+        case CoreOutputEvent::SessionStateReported:
+        {
+            const SessionStateLine stateLine = parseSessionStateLine(line);
+            if (stateLine.valid)
+            {
+                emit sessionStateReported(stateLine);
+            }
+            break;
+        }
+        case CoreOutputEvent::KeepAliveReported:
+        {
+            const KeepAliveLine keepAliveLine = parseKeepAliveLine(line);
+            if (keepAliveLine.valid)
+            {
+                emit keepAliveReported(keepAliveLine);
+            }
+            break;
+        }
         case CoreOutputEvent::ClientFailed:
             emit error(ZJU_ERROR::CLIENT_FAILED);
             break;
@@ -232,7 +251,11 @@ void ZjuConnectProcess::start(const ConnectionProfile &profile)
     runtimePaths.debugPcapFile = debugPaths.pcapFile;
     runtimePaths.debugTlsLogFile = debugPaths.tlsLogFile;
 
-    const CoreCommand command = CoreCommandBuilder::build(profile, runtimePaths);
+    // The optional flags go only to a core that advertises them, and the probe is
+    // cached per core path: one extra process per session at most.
+    const CoreCapabilities capabilities =
+        coreCapabilitiesFromFlags(CoreExecutable::supportedFlags());
+    const CoreCommand command = CoreCommandBuilder::build(profile, runtimePaths, capabilities);
     qInfo().noquote() << "VPN 启动！参数：" + command.loggableCommandLine();
 
     if (!profile.credentials.totpSecret.isEmpty())

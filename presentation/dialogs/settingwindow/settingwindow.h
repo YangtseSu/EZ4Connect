@@ -27,6 +27,10 @@ private:
     void updateKeepAliveTargetState();
     bool isAuthSettingChanged();
     bool shouldCheckCredential();
+    // The dialog's values as the settings window holds them between load and
+    // apply; the core knobs are part of the same round trip.
+    ExtraSettings extraSettings() const;
+    void setExtraSettings(const ExtraSettings &values);
 
     Ui::SettingWindow *ui;
 
@@ -41,6 +45,9 @@ private:
     QString customDNS;
     QString customProxyDomain;
     QString extraArguments;
+    int sessionRefreshInterval = 0;
+    int keepAliveInterval = 0;
+    bool autoRelogin = false;
 };
 
 #endif //SETTINGWINDOW_H
