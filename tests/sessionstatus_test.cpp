@@ -23,8 +23,7 @@ bool parsesSessionStateLines()
     if (!online.valid
         || online.state != SessionMaintenanceState::Online
         || online.reason != "logged in"
-        || online.code != 0
-        || online.stateWord != "online")
+        || online.code != 0)
     {
         qCritical() << "parsesSessionStateLines failed on the online line" << online.reason;
         return false;
@@ -61,70 +60,41 @@ bool parsesSessionStateLines()
 
 bool parsesKeepAliveRounds()
 {
+    // The current core prints no routed= field: a successful application probe
+    // is just the OK line.
     const KeepAliveLine ok = parseKeepAliveLine(
+        "KeepAlive: OK status=200 target=http://intranet.example/"
+    );
+    if (!ok.valid || !ok.ok)
+    {
+        qCritical() << "parsesKeepAliveRounds failed on the OK round";
+        return false;
+    }
+
+    // The old line is still accepted; the parser only keys on the prefix.
+    const KeepAliveLine routed = parseKeepAliveLine(
         "KeepAlive: OK status=200 target=http://intranet.example/ routed=tunnel"
     );
-    if (!ok.valid || !ok.ok || !ok.throughTunnel || ok.reportsStreak)
+    if (!routed.valid || !routed.ok)
     {
-        qCritical() << "parsesKeepAliveRounds failed on the tunnel round";
+        qCritical() << "parsesKeepAliveRounds failed on the routed round";
         return false;
     }
 
-    // An answer outside the tunnel is a successful request that does not hold the
-    // session open - the distinction the GUI must not flatten.
-    const KeepAliveLine direct = parseKeepAliveLine(
-        "KeepAlive: OK status=200 target=http://intranet.example/ routed=direct: "
-        "this request did not cross the tunnel and does not hold the session"
+    const KeepAliveLine httpFailure = parseKeepAliveLine(
+        "KeepAlive: target=http://intranet.example/ status=404"
     );
-    if (!direct.valid || !direct.ok || direct.throughTunnel)
-    {
-        qCritical() << "parsesKeepAliveRounds failed on the direct round";
-        return false;
-    }
-
-    const KeepAliveLine perRound = parseKeepAliveLine(
-        "KeepAlive: target failure target=http://intranet.example/ routed=denied "
-        "err=not in the granted resources, the tunnel refuses it"
-    );
-    if (!perRound.valid || perRound.ok || perRound.reportsStreak)
-    {
-        qCritical() << "parsesKeepAliveRounds failed on the per-round failure";
-        return false;
-    }
-
-    const KeepAliveLine sessionGone = parseKeepAliveLine(
-        "KeepAlive: the session behind the tunnel is gone (target=http://intranet.example/ "
-        "code=10000004, 3 consecutive failed rounds)"
-    );
-    if (!sessionGone.valid || sessionGone.ok || !sessionGone.reportsStreak
-        || sessionGone.consecutiveFailures != 3)
-    {
-        qCritical() << "parsesKeepAliveRounds failed on the dead-session report";
-        return false;
-    }
-
     const KeepAliveLine transport = parseKeepAliveLine(
-        "KeepAlive: transport failure for 4 consecutive rounds "
-        "(target=http://intranet.example/): dial tcp: i/o timeout"
+        "KeepAlive: target=http://intranet.example/ err=dial tcp: i/o timeout"
     );
-    const KeepAliveLine noTarget = parseKeepAliveLine(
-        "KeepAlive: no usable target for 5 consecutive rounds "
-        "(target=http://intranet.example/): http status 404"
+    const KeepAliveLine noResolver = parseKeepAliveLine(
+        "KeepAlive: No remote resolver available"
     );
-    if (!transport.valid || transport.ok || transport.consecutiveFailures != 4
-        || !noTarget.valid || noTarget.consecutiveFailures != 5)
+    if (!httpFailure.valid || httpFailure.ok
+        || !transport.valid || transport.ok
+        || !noResolver.valid || noResolver.ok)
     {
-        qCritical() << "parsesKeepAliveRounds failed on a failure streak";
-        return false;
-    }
-
-    const KeepAliveLine recovered = parseKeepAliveLine(
-        "KeepAlive: recovered after 3 failed rounds (target=http://intranet.example/)"
-    );
-    if (!recovered.valid || !recovered.ok || !recovered.reportsStreak
-        || recovered.consecutiveFailures != 3)
-    {
-        qCritical() << "parsesKeepAliveRounds failed on the recovery";
+        qCritical() << "parsesKeepAliveRounds failed on a failure report";
         return false;
     }
 
@@ -137,40 +107,10 @@ bool parsesKeepAliveRounds()
         && !parseKeepAliveLine("Keep alive is disabled: no application target").valid
         && !parseKeepAliveLine("ordinary output").valid;
 }
-
-bool warnsOnlyAfterAFewRounds()
-{
-    const KeepAliveLine twoRounds = parseKeepAliveLine(
-        "KeepAlive: transport failure for 2 consecutive rounds (target=http://intranet.example/)"
-    );
-    const KeepAliveLine threeRounds = parseKeepAliveLine(
-        "KeepAlive: transport failure for 3 consecutive rounds (target=http://intranet.example/)"
-    );
-    const KeepAliveLine perRound = parseKeepAliveLine(
-        "KeepAlive: target failure target=http://intranet.example/ routed=tunnel err=boom"
-    );
-    const KeepAliveLine recovered = parseKeepAliveLine(
-        "KeepAlive: recovered after 4 failed rounds (target=http://intranet.example/)"
-    );
-
-    if (keepAliveWarrantsWarning(twoRounds)
-        || !keepAliveWarrantsWarning(threeRounds)
-        || keepAliveWarrantsWarning(perRound)
-        || keepAliveWarrantsWarning(recovered))
-    {
-        qCritical() << "warnsOnlyAfterAFewRounds failed on the threshold";
-        return false;
-    }
-    return true;
-}
 }
 
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
-    return parsesSessionStateLines()
-               && parsesKeepAliveRounds()
-               && warnsOnlyAfterAFewRounds()
-           ? 0
-           : 1;
+    return parsesSessionStateLines() && parsesKeepAliveRounds() ? 0 : 1;
 }

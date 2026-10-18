@@ -253,11 +253,11 @@ bool followsTheCoresSessionReports()
     }
 
     coreProcess->reportKeepAlive(parseKeepAliveLine(
-        "KeepAlive: OK status=200 target=http://intranet.example/ routed=tunnel"
+        "KeepAlive: OK status=200 target=http://intranet.example/"
     ));
     if (!session.sessionStatus().hasKeepAlive
         || !session.sessionStatus().keepAlive.ok
-        || !session.sessionStatus().keepAlive.throughTunnel
+        || !session.sessionStatus().keepAlive.summary.contains("status=200")
         || session.sessionStatus().keepAliveAt.isNull())
     {
         qCritical() << "followsTheCoresSessionReports did not keep the keep-alive result";

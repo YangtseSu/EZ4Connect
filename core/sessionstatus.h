@@ -23,38 +23,23 @@ struct SessionStateLine
 {
     bool valid = false;
     SessionMaintenanceState state = SessionMaintenanceState::Unknown;
-    QString stateWord;
     QString reason;
     int code = 0;
 };
 
-// What the core's keep-alive last reported. A round whose target answered
-// outside the tunnel counts as an answer but not as activity - the core says so
-// with "routed=direct" - and only traffic through the tunnel holds the session
-// open, so the two have to stay apart.
+// What the core's keep-alive last reported. A line is either a result or a note
+// about how targets were chosen; only the former is kept for display.
 struct KeepAliveLine
 {
     bool valid = false;
     bool ok = false;
-    bool throughTunnel = false;
-    // The core reports every failed round; its own streak accounting ("3
-    // consecutive failed rounds") is what tells a miss from an outage.
-    bool reportsStreak = false;
-    int consecutiveFailures = 0;
     QString summary; // the line without its "KeepAlive: " prefix
 };
 
 SessionMaintenanceState sessionMaintenanceStateFromCore(const QString &stateWord);
-QString sessionMaintenanceStateName(SessionMaintenanceState state);
 
 SessionStateLine parseSessionStateLine(const QString &line);
 KeepAliveLine parseKeepAliveLine(const QString &line);
-
-// One notification per outage, not one per round: the core reports every failed
-// round, so a warning is only worth showing once the streak has lasted a few of
-// them.
-constexpr int KeepAliveRoundsBeforeWarning = 3;
-bool keepAliveWarrantsWarning(const KeepAliveLine &line);
 
 // The status the GUI keeps for display: the core's last words plus when the GUI
 // saw them, so a stale status is visibly stale.
@@ -62,7 +47,6 @@ struct SessionStatus
 {
     SessionMaintenanceState state = SessionMaintenanceState::Unknown;
     QString reason;
-    int code = 0;
     bool hasKeepAlive = false;
     KeepAliveLine keepAlive;
     QDateTime keepAliveAt;

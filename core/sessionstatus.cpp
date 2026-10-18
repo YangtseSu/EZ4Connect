@@ -1,7 +1,6 @@
 #include "sessionstatus.h"
 
 #include <QRegularExpression>
-#include <QStringList>
 
 namespace
 {
@@ -11,20 +10,22 @@ const QString kKeepAlivePrefix = QStringLiteral("KeepAlive: ");
 // The result shapes the core's keep-alive prints. Anything else with the
 // "KeepAlive: " prefix is a note about how targets were chosen ("probing 2
 // target(s) every 60s", "no application target, falling back to ..."), which is
-// not a result and must not overwrite the last one.
+// not a result and must not overwrite the last one. The patterns are compiled
+// once: this parser sees one line per keep-alive round.
 struct KeepAliveShape
 {
-    const char *pattern;
+    QRegularExpression pattern;
     bool ok;
 };
 
-constexpr KeepAliveShape kKeepAliveShapes[] = {
-    {"^OK status=[0-9]+ target=.* routed=", true},
-    {"^recovered after [0-9]+ failed rounds", true},
-    {"^target failure ", false},
-    {"^(session|transport|target) failure ", false},
-    {"^the session behind the tunnel is gone", false},
-    {"^no usable target for [0-9]+ consecutive rounds", false},
+const KeepAliveShape kKeepAliveShapes[] = {
+    // The core's application-traffic probe: a successful answer, an HTTP
+    // failure, a transport failure, or the remote-DNS fallback having no
+    // resolver. The old routed= field is not emitted any more.
+    {QRegularExpression(QStringLiteral("^OK status=[0-9]+ target=")), true},
+    {QRegularExpression(QStringLiteral("^target=.* status=[0-9]+")), false},
+    {QRegularExpression(QStringLiteral("^target=.* err=")), false},
+    {QRegularExpression(QStringLiteral("^No remote resolver available")), false},
 };
 }
 
@@ -53,26 +54,6 @@ SessionMaintenanceState sessionMaintenanceStateFromCore(const QString &stateWord
     return SessionMaintenanceState::Unknown;
 }
 
-QString sessionMaintenanceStateName(SessionMaintenanceState state)
-{
-    switch (state)
-    {
-    case SessionMaintenanceState::Online:
-        return QStringLiteral("online");
-    case SessionMaintenanceState::Renewing:
-        return QStringLiteral("renewing");
-    case SessionMaintenanceState::Restoring:
-        return QStringLiteral("restoring");
-    case SessionMaintenanceState::ReloginRequired:
-        return QStringLiteral("relogin-required");
-    case SessionMaintenanceState::Offline:
-        return QStringLiteral("offline");
-    case SessionMaintenanceState::Unknown:
-        break;
-    }
-    return {};
-}
-
 SessionStateLine parseSessionStateLine(const QString &line)
 {
     SessionStateLine result;
@@ -97,8 +78,7 @@ SessionStateLine parseSessionStateLine(const QString &line)
     }
 
     result.valid = true;
-    result.stateWord = match.captured(1);
-    result.state = sessionMaintenanceStateFromCore(result.stateWord);
+    result.state = sessionMaintenanceStateFromCore(match.captured(1));
     result.reason = match.captured(2).trimmed();
     result.code = match.captured(3).toInt();
     return result;
@@ -116,39 +96,15 @@ KeepAliveLine parseKeepAliveLine(const QString &line)
     const QString summary = line.mid(marker + kKeepAlivePrefix.size()).trimmed();
     for (const KeepAliveShape &shape : kKeepAliveShapes)
     {
-        if (!summary.contains(QRegularExpression(QLatin1String(shape.pattern))))
+        if (!shape.pattern.match(summary).hasMatch())
         {
             continue;
         }
 
         result.valid = true;
         result.ok = shape.ok;
-        result.throughTunnel = shape.ok
-            && !summary.contains(QLatin1String("routed=direct"));
         result.summary = summary;
         break;
     }
-    if (!result.valid)
-    {
-        return result;
-    }
-
-    static const QRegularExpression streakPattern(
-        QStringLiteral("([0-9]+) (?:consecutive failed rounds|consecutive rounds|failed rounds)")
-    );
-    const QRegularExpressionMatch streak = streakPattern.match(summary);
-    if (streak.hasMatch())
-    {
-        result.reportsStreak = true;
-        result.consecutiveFailures = streak.captured(1).toInt();
-    }
     return result;
-}
-
-bool keepAliveWarrantsWarning(const KeepAliveLine &line)
-{
-    return line.valid
-        && !line.ok
-        && line.reportsStreak
-        && line.consecutiveFailures >= KeepAliveRoundsBeforeWarning;
 }
