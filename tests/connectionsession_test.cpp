@@ -229,6 +229,57 @@ bool cancelledInteractiveInputSubmitsNewlineBeforeStopping()
     }
     return true;
 }
+
+bool schedulesTheLadderRungItReports()
+{
+    auto *coreProcess = new FakeCoreProcess();
+    ConnectionSession session(coreProcess);
+    ConnectionProfile profile;
+    int scheduleCalls = 0;
+    int scheduledDelay = 0;
+    QObject::connect(
+        &session,
+        &ConnectionSession::reconnectScheduled,
+        [&](int delayMs)
+        {
+            ++scheduleCalls;
+            scheduledDelay = delayMs;
+        }
+    );
+
+    if (!session.start(profile, {true, 1000}))
+    {
+        qCritical() << "failed to start session for the ladder case";
+        return false;
+    }
+    coreProcess->establishConnection();
+    emit coreProcess->error(ZJU_ERROR::CLIENT_FAILED);
+    coreProcess->complete();
+
+    // The delay the caller is told to wait is the rung the state machine reports,
+    // and it is the first one: the timer must not run ahead of the counter the UI
+    // shows.
+    if (scheduleCalls != 1
+        || scheduledDelay != 1000
+        || session.state() != ConnectionState::Reconnecting
+        || session.reconnectAttempt() != 1
+        || session.reconnectAttemptLimit() != 5
+        || session.reconnectDelayMs() != scheduledDelay)
+    {
+        qCritical() << "schedulesTheLadderRungItReports did not schedule the reported rung";
+        return false;
+    }
+
+    // A disconnect while the retry waits cancels it: no attempt survives a stop.
+    session.stop();
+    if (session.state() != ConnectionState::Disconnected
+        || session.isActive())
+    {
+        qCritical() << "schedulesTheLadderRungItReports left a pending retry behind";
+        return false;
+    }
+    return true;
+}
 }
 
 int main(int argc, char *argv[])
@@ -238,5 +289,6 @@ int main(int argc, char *argv[])
         && distinguishesInterruptedConnectionFromStartupFailure()
         && emptySudoPasswordStopsTheSession()
         && sessionExpiryStopsTheCoreAndAsksForALogin()
+        && schedulesTheLadderRungItReports()
         && cancelledInteractiveInputSubmitsNewlineBeforeStopping() ? 0 : 1;
 }
