@@ -43,11 +43,6 @@ void DefaultSettings::reset(QSettings &settings)
     settings.setValue("ZJUConnect/MultiLine", false);
     settings.setValue("ZJUConnect/KeepAliveMode", "auto");
     settings.setValue("ZJUConnect/KeepAliveURL", "");
-    // 0 leaves the cadence to the core, which is what every core does until the
-    // user asks for something else.
-    settings.setValue("ZJUConnect/KeepAliveInterval", 0);
-    settings.setValue("ZJUConnect/SessionRefreshInterval", 0);
-    settings.setValue("ZJUConnect/AutoRelogin", false);
     settings.setValue("ZJUConnect/BindInterface", "");
     settings.setValue("ZJUConnect/OutsideAccess", false);
     settings.setValue("ZJUConnect/SkipDomainResource", false);

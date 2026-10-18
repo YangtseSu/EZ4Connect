@@ -3,8 +3,6 @@
 
 #include <QDialog>
 
-#include "core/corecapabilities.h"
-
 #include "ui_extrasettingwindow.h"
 
 namespace Ui
@@ -12,9 +10,8 @@ namespace Ui
     class ExtraSettingWindow;
 }
 
-// What the "其他设置" dialog carries. The last three are the core's own knobs and
-// are passed through as its flags; 0 and false mean "leave it to the core", which
-// is also what a core that does not know them does.
+// What the "其他设置" dialog carries: options that are passed as the core's own
+// flags without a second consumer in the GUI.
 struct ExtraSettings
 {
     QString tcpPortForwarding;
@@ -22,9 +19,6 @@ struct ExtraSettings
     QString customDns;
     QString customProxyDomains;
     QString extraArguments;
-    int sessionRefreshInterval = 0;
-    int keepAliveInterval = 0;
-    bool autoRelogin = false;
 };
 
 class ExtraSettingWindow : public QDialog
@@ -36,7 +30,7 @@ public:
 
     ~ExtraSettingWindow() override;
 
-    void setup(const ExtraSettings &settings, const CoreCapabilities &capabilities);
+    void setup(const ExtraSettings &settings);
 
 signals:
     void applied(const ExtraSettings &settings);

@@ -156,66 +156,6 @@ UDP,127.0.0.1:25565,10.248.98.98:25565</string>
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="sessionGroupBox">
-     <property name="title">
-      <string>会话与保活（核心参数）</string>
-     </property>
-     <layout class="QFormLayout" name="sessionFormLayout">
-      <item row="0" column="0">
-       <widget class="QLabel" name="sessionRefreshLabel">
-        <property name="text">
-         <string>会话续期间隔（秒）</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QSpinBox" name="sessionRefreshSpinBox">
-        <property name="maximum">
-         <number>3600</number>
-        </property>
-        <property name="specialValueText">
-         <string>核心默认</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="keepAliveIntervalLabel">
-        <property name="text">
-         <string>保活间隔（秒）</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QSpinBox" name="keepAliveSpinBox">
-        <property name="maximum">
-         <number>3600</number>
-        </property>
-        <property name="specialValueText">
-         <string>核心默认</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0" colspan="2">
-       <widget class="QCheckBox" name="autoReloginCheckBox">
-        <property name="text">
-         <string>会话失效后自动重新登录</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0" colspan="2">
-       <widget class="QLabel" name="sessionHintLabel">
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;显示「核心默认」表示不改动核心自身的间隔；核心不支持的项目会置灰。自动重新登录需要已保存的账号密码，且一次完整登录会轮换设备令牌，可能使同一账号的其它客户端下线。&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="wordWrap">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="standardButtons">
       <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>

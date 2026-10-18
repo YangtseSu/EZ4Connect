@@ -62,9 +62,6 @@ bool loadsSettingsIntoTypedProfile()
     settings.setValue("ZJUConnect/SkipDomainResource", true);
     settings.setValue("ZJUConnect/DisableServerConfig", true);
     settings.setValue("ZJUConnect/ZJUDefault", false);
-    settings.setValue("ZJUConnect/SessionRefreshInterval", 120);
-    settings.setValue("ZJUConnect/KeepAliveInterval", 30);
-    settings.setValue("ZJUConnect/AutoRelogin", true);
     settings.setValue("ZJUConnect/Debug", true);
     settings.setValue("ZJUConnect/DebugPCAP", true);
     settings.setValue("ZJUConnect/DebugTLSLog", true);
@@ -117,9 +114,6 @@ bool loadsSettingsIntoTypedProfile()
         && profile.behavior.skipDomainResource
         && profile.behavior.disableServerConfig
         && profile.behavior.disableZjuConfig
-        && profile.behavior.sessionRefreshInterval == 120
-        && profile.behavior.keepAliveInterval == 30
-        && profile.behavior.autoRelogin
         && profile.debug.detailedOutput
         && profile.debug.capturePcap
         && profile.debug.exportTlsKeys
@@ -144,10 +138,6 @@ bool usesCompatibleDefaults()
         && profile.behavior.disableMultiLine
         && profile.behavior.keepAliveMode == KeepAliveMode::Automatic
         && profile.behavior.disableZjuConfig
-        // Unset means the core's own cadence and no automatic login.
-        && profile.behavior.sessionRefreshInterval == 0
-        && profile.behavior.keepAliveInterval == 0
-        && !profile.behavior.autoRelogin
         && profile.dns.localDnsServer.isEmpty()
         && profile.dns.dnsServerBind.isEmpty()
         && !profile.debug.detailedOutput

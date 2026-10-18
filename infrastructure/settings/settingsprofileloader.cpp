@@ -89,10 +89,7 @@ ConnectionProfile SettingsProfileLoader::load(
         settings.value("ZJUConnect/AutoDetectInterface", false).toBool(),
         settings.value("ZJUConnect/SkipDomainResource").toBool(),
         settings.value("ZJUConnect/DisableServerConfig").toBool(),
-        !settings.value("ZJUConnect/ZJUDefault").toBool(),
-        settings.value("ZJUConnect/SessionRefreshInterval", 0).toInt(),
-        settings.value("ZJUConnect/KeepAliveInterval", 0).toInt(),
-        settings.value("ZJUConnect/AutoRelogin", false).toBool()
+        !settings.value("ZJUConnect/ZJUDefault").toBool()
     };
 
     profile.debug = {

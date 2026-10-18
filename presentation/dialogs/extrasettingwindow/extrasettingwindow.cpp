@@ -61,9 +61,6 @@ ExtraSettingWindow::ExtraSettingWindow(QDialog *parent) :
                 settings.customProxyDomains = customProxyDomainsList.join(",");
                 settings.extraArguments =
                     ui->extraArgTextEdit->toPlainText().replace("\n", " ");
-                settings.sessionRefreshInterval = ui->sessionRefreshSpinBox->value();
-                settings.keepAliveInterval = ui->keepAliveSpinBox->value();
-                settings.autoRelogin = ui->autoReloginCheckBox->isChecked();
 
                 emit applied(settings);
             });
@@ -75,10 +72,7 @@ ExtraSettingWindow::~ExtraSettingWindow()
     delete ui;
 }
 
-void ExtraSettingWindow::setup(
-    const ExtraSettings &settings,
-    const CoreCapabilities &capabilities
-)
+void ExtraSettingWindow::setup(const ExtraSettings &settings)
 {
     QStringList tcpPortForwardingList = settings.tcpPortForwarding.split(",");
 
@@ -130,25 +124,4 @@ void ExtraSettingWindow::setup(
 	}
 
 	ui->extraArgTextEdit->setPlainText(settings.extraArguments);
-
-    ui->sessionRefreshSpinBox->setValue(settings.sessionRefreshInterval);
-    ui->keepAliveSpinBox->setValue(settings.keepAliveInterval);
-    ui->autoReloginCheckBox->setChecked(settings.autoRelogin);
-
-    // A knob the running core does not advertise cannot be passed, so its control
-    // is shown disabled with the reason instead of silently doing nothing. The
-    // values stay as they are: another core may support them.
-    const QString unsupported = "当前核心不支持该参数";
-    for (const QPair<QWidget *, bool> &control : QList<QPair<QWidget *, bool>>{
-             {ui->sessionRefreshSpinBox, capabilities.sessionRefreshInterval},
-             {ui->keepAliveSpinBox, capabilities.keepAliveInterval},
-             {ui->autoReloginCheckBox, capabilities.autoRelogin},
-         })
-    {
-        control.first->setEnabled(control.second);
-        if (!control.second)
-        {
-            control.first->setToolTip(unsupported);
-        }
-    }
 }
