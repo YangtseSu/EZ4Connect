@@ -128,17 +128,22 @@ ConnectionUiController::ConnectionUiController(
         this,
         [this](const KeepAliveLine &line)
         {
-            // Keep-alive is what holds the session open, so an outage is worth a
-            // warning - but only once it has lasted a few rounds, and only once
-            // per outage: a recovered streak arms the next one.
-            if (keepAliveWarrantsWarning(line))
+            // Keep-alive is what holds the session open: the first failed result
+            // warns once, and a later success clears the warning. The core reports
+            // every round, so this is what keeps one outage from becoming a
+            // notification per minute.
+            if (!line.valid)
+            {
+                return;
+            }
+            if (!line.ok)
             {
                 if (keepAliveWarningRaised)
                 {
                     return;
                 }
                 keepAliveWarningRaised = true;
-                qWarning().noquote() << "保活连续失败：" << line.summary;
+                qWarning().noquote() << "保活失败：" << line.summary;
                 this->notificationHandler(
                     "VPN",
                     "保活失败，会话可能被服务器结束：\n" + line.summary,
@@ -147,7 +152,7 @@ ConnectionUiController::ConnectionUiController(
                 return;
             }
 
-            if (line.ok && keepAliveWarningRaised)
+            if (keepAliveWarningRaised)
             {
                 keepAliveWarningRaised = false;
                 qInfo().noquote() << "保活已恢复：" << line.summary;
@@ -156,6 +161,21 @@ ConnectionUiController::ConnectionUiController(
                     "保活已恢复。",
                     QSystemTrayIcon::MessageIcon::Information
                 );
+            }
+        }
+    );
+    connect(
+        connectionSession,
+        &ConnectionSession::stateChanged,
+        this,
+        [this](ConnectionState state)
+        {
+            // A retry starts with a new process and a new keep-alive streak; a
+            // warning that outlived the old process would swallow the first
+            // failure of the new one.
+            if (state == ConnectionState::Starting || state == ConnectionState::Reconnecting)
+            {
+                keepAliveWarningRaised = false;
             }
         }
     );
@@ -432,9 +452,6 @@ void ConnectionUiController::startConnection(
     {
         return;
     }
-
-    // A new process has its own keep-alive streak.
-    keepAliveWarningRaised = false;
 
     connectButton->setText("断开服务器");
     trayConnectAction->setText("断开服务器");

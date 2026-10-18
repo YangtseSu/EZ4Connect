@@ -58,9 +58,6 @@ bool ConnectionSession::start(const ConnectionProfile &profile, const ReconnectP
     }
 
     currentProfile = profile;
-    // A new process reports its own session: nothing of the previous one is shown
-    // while the new one has not said anything yet.
-    currentSessionStatus = SessionStatus{};
     emit stateChanged(sessionState.state());
     startCore();
     return true;
@@ -149,6 +146,19 @@ const SessionStatus &ConnectionSession::sessionStatus() const
 
 void ConnectionSession::startCore()
 {
+    // Every process - the first one and each retry - reports its own session;
+    // nothing of the previous one is shown while the new one has not said
+    // anything yet. This is the single process-start point, so the reconnect path
+    // cannot keep a stale status.
+    const bool hadStatus =
+        currentSessionStatus.state != SessionMaintenanceState::Unknown
+        || currentSessionStatus.hasKeepAlive
+        || !currentSessionStatus.reason.isEmpty();
+    currentSessionStatus = SessionStatus{};
+    if (hadStatus)
+    {
+        emit sessionStatusChanged();
+    }
     sudoPasswordSubmitted = false;
     coreProcess->start(currentProfile);
 }
@@ -176,7 +186,6 @@ void ConnectionSession::handleSessionStateReported(const SessionStateLine &line)
 {
     currentSessionStatus.state = line.state;
     currentSessionStatus.reason = line.reason;
-    currentSessionStatus.code = line.code;
     emit sessionStatusChanged();
 
     // The state line is the core announcing what it learned; the "requires

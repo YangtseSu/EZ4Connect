@@ -25,6 +25,7 @@ private:
     void loadSettings();
     void applySettings();
     void updateKeepAliveTargetState();
+    bool validateKeepAliveTarget();
     bool isAuthSettingChanged();
     bool shouldCheckCredential();
     // The dialog's values as the settings window holds them between load and
@@ -45,9 +46,6 @@ private:
     QString customDNS;
     QString customProxyDomain;
     QString extraArguments;
-    int sessionRefreshInterval = 0;
-    int keepAliveInterval = 0;
-    bool autoRelogin = false;
 };
 
 #endif //SETTINGWINDOW_H

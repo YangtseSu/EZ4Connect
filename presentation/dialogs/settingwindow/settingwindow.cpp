@@ -12,7 +12,6 @@
 #include "core/connectionprofile.h"
 #include "core/connectionsessionstate.h"
 #include "infrastructure/platform/autostart.h"
-#include "infrastructure/coreprocess/coreexecutable.h"
 #include "infrastructure/storage/applicationpaths.h"
 #include "presentation/presentationhelpers.h"
 #include "infrastructure/settings/profilemanager.h"
@@ -58,13 +57,7 @@ SettingWindow::SettingWindow(QWidget *parent, QSettings *inputSettings, const QS
             [&]()
             {
                 extraSettingWindow = new ExtraSettingWindow(this);
-                // What the running core advertises decides which knobs can be
-                // passed, so the dialog can say so instead of storing a value
-                // that never reaches the command line.
-                extraSettingWindow->setup(
-                    extraSettings(),
-                    coreCapabilitiesFromFlags(CoreExecutable::supportedFlags())
-                );
+                extraSettingWindow->setup(extraSettings());
 
                 connect(extraSettingWindow, &ExtraSettingWindow::applied, this,
                     [&](const ExtraSettings &applied)
@@ -76,6 +69,8 @@ SettingWindow::SettingWindow(QWidget *parent, QSettings *inputSettings, const QS
             });
 
     connect(ui->buttonBox->button(QDialogButtonBox::Ok), &QPushButton::clicked, [&]() {
+        if (!validateKeepAliveTarget())
+            return;
         if (shouldCheckCredential() && !PresentationHelpers::confirmCredentials(
                 ui->usernameLineEdit->text(),
                 ui->passwordLineEdit->text()
@@ -88,6 +83,8 @@ SettingWindow::SettingWindow(QWidget *parent, QSettings *inputSettings, const QS
     });
 
     connect(ui->buttonBox->button(QDialogButtonBox::Apply), &QPushButton::clicked, [&]() {
+        if (!validateKeepAliveTarget())
+            return;
         if (shouldCheckCredential() && !PresentationHelpers::confirmCredentials(
                 ui->usernameLineEdit->text(),
                 ui->passwordLineEdit->text()
@@ -329,9 +326,6 @@ void SettingWindow::loadSettings()
 	customDNS = settings->value("ZJUConnect/CustomDNS").toString();
 	customProxyDomain = settings->value("ZJUConnect/CustomProxyDomain").toString();
     extraArguments = settings->value("ZJUConnect/ExtraArguments").toString();
-    sessionRefreshInterval = settings->value("ZJUConnect/SessionRefreshInterval", 0).toInt();
-    keepAliveInterval = settings->value("ZJUConnect/KeepAliveInterval", 0).toInt();
-    autoRelogin = settings->value("ZJUConnect/AutoRelogin", false).toBool();
 
     ui->routeCheckBox->setEnabled(ui->tunCheckBox->isChecked());
     ui->dnsHijackCheckBox->setEnabled(ui->tunCheckBox->isChecked());
@@ -455,9 +449,6 @@ void SettingWindow::applySettings()
     settings->setValue("ZJUConnect/CustomDNS", customDNS);
     settings->setValue("ZJUConnect/CustomProxyDomain", customProxyDomain);
     settings->setValue("ZJUConnect/ExtraArguments", extraArguments);
-    settings->setValue("ZJUConnect/SessionRefreshInterval", sessionRefreshInterval);
-    settings->setValue("ZJUConnect/KeepAliveInterval", keepAliveInterval);
-    settings->setValue("ZJUConnect/AutoRelogin", autoRelogin);
 
     settings->setValue(
         "Common/ConfigVersion",
@@ -476,6 +467,29 @@ void SettingWindow::updateKeepAliveTargetState()
     ui->zjuConnectTabLabel6_4->setEnabled(usesConfiguredTarget);
 }
 
+bool SettingWindow::validateKeepAliveTarget()
+{
+    const bool usesConfiguredTarget =
+        ui->keepAliveModeComboBox->currentData().toString()
+        == keepAliveModeToString(KeepAliveMode::Url);
+    // "Specified address" with no address would silently fall back to automatic
+    // keep-alive in the core, so the mode is refused instead.
+    if (!usesConfiguredTarget
+        || !ui->keepAliveUrlLineEdit->text().trimmed().isEmpty())
+    {
+        return true;
+    }
+
+    QMessageBox::warning(
+        this,
+        "保活目标地址",
+        "保活模式选择了“指定地址”，但地址为空。\n"
+        "请填写 VPN 内可访问的 http:// 地址，或把保活模式改为“自动保活”。"
+    );
+    ui->keepAliveUrlLineEdit->setFocus();
+    return false;
+}
+
 ExtraSettings SettingWindow::extraSettings() const
 {
     ExtraSettings values;
@@ -484,9 +498,6 @@ ExtraSettings SettingWindow::extraSettings() const
     values.customDns = customDNS;
     values.customProxyDomains = customProxyDomain;
     values.extraArguments = extraArguments;
-    values.sessionRefreshInterval = sessionRefreshInterval;
-    values.keepAliveInterval = keepAliveInterval;
-    values.autoRelogin = autoRelogin;
     return values;
 }
 
@@ -497,9 +508,6 @@ void SettingWindow::setExtraSettings(const ExtraSettings &values)
     customDNS = values.customDns;
     customProxyDomain = values.customProxyDomains;
     extraArguments = values.extraArguments;
-    sessionRefreshInterval = values.sessionRefreshInterval;
-    keepAliveInterval = values.keepAliveInterval;
-    autoRelogin = values.autoRelogin;
 }
 
 bool SettingWindow::isAuthSettingChanged()

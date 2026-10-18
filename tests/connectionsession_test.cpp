@@ -1,5 +1,7 @@
 #include <QCoreApplication>
 #include <QDebug>
+#include <QElapsedTimer>
+#include <QEventLoop>
 
 #include "application/connectionsession.h"
 
@@ -257,7 +259,7 @@ bool followsTheCoresSessionReports()
     ));
     if (!session.sessionStatus().hasKeepAlive
         || !session.sessionStatus().keepAlive.ok
-        || !session.sessionStatus().keepAlive.throughTunnel
+        || session.sessionStatus().keepAlive.summary.isEmpty()
         || session.sessionStatus().keepAliveAt.isNull())
     {
         qCritical() << "followsTheCoresSessionReports did not keep the keep-alive result";
@@ -362,6 +364,54 @@ bool schedulesTheLadderRungItReports()
     }
     return true;
 }
+
+bool clearsTheLastStatusWhenTheNextProcessStarts()
+{
+    auto *coreProcess = new FakeCoreProcess();
+    ConnectionSession session(coreProcess);
+    ConnectionProfile profile;
+
+    if (!session.start(profile, {true, 1}))
+    {
+        qCritical() << "failed to start session for the stale-status case";
+        return false;
+    }
+    coreProcess->establishConnection();
+    coreProcess->reportSessionState(parseSessionStateLine(
+        "aTrust session state: online reason=logged in code=0"
+    ));
+    coreProcess->reportKeepAlive(parseKeepAliveLine(
+        "KeepAlive: OK status=200 target=http://intranet.example/ routed=tunnel"
+    ));
+    if (!session.sessionStatus().hasKeepAlive
+        || session.sessionStatus().state != SessionMaintenanceState::Online)
+    {
+        qCritical() << "the stale-status case did not record the first process";
+        return false;
+    }
+
+    // Let the bounded ladder start the next process. The reconnect path enters
+    // startCore() without an explicit start(), and that is where the status of
+    // the previous process must be dropped.
+    emit coreProcess->error(ZJU_ERROR::CLIENT_FAILED);
+    coreProcess->complete();
+    QElapsedTimer elapsed;
+    elapsed.start();
+    while (coreProcess->startCalls < 2 && elapsed.elapsed() < 2000)
+    {
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+    }
+
+    if (coreProcess->startCalls != 2
+        || session.state() != ConnectionState::Starting
+        || session.sessionStatus().state != SessionMaintenanceState::Unknown
+        || session.sessionStatus().hasKeepAlive)
+    {
+        qCritical() << "clearsTheLastStatusWhenTheNextProcessStarts kept the old status";
+        return false;
+    }
+    return true;
+}
 }
 
 int main(int argc, char *argv[])
@@ -373,5 +423,6 @@ int main(int argc, char *argv[])
         && sessionExpiryStopsTheCoreAndAsksForALogin()
         && followsTheCoresSessionReports()
         && schedulesTheLadderRungItReports()
+        && clearsTheLastStatusWhenTheNextProcessStarts()
         && cancelledInteractiveInputSubmitsNewlineBeforeStopping() ? 0 : 1;
 }

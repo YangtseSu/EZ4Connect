@@ -95,8 +95,7 @@ QString CoreCommand::loggableCommandLine() const
 
 CoreCommand CoreCommandBuilder::build(
     const ConnectionProfile &profile,
-    const CoreRuntimePaths &runtimePaths,
-    const CoreCapabilities &capabilities
+    const CoreRuntimePaths &runtimePaths
 )
 {
     QStringList arguments;
@@ -195,22 +194,6 @@ CoreCommand CoreCommandBuilder::build(
         break;
     case KeepAliveMode::Automatic:
         break;
-    }
-    // The optional cadences go only to a core that advertises the flag: a core
-    // that does not know one exits on it, and 0 means "leave it to the core".
-    if (capabilities.keepAliveInterval && profile.behavior.keepAliveInterval > 0)
-    {
-        arguments << "-keep-alive-interval"
-                  << QString::number(profile.behavior.keepAliveInterval);
-    }
-    if (capabilities.sessionRefreshInterval && profile.behavior.sessionRefreshInterval > 0)
-    {
-        arguments << "-session-refresh-interval"
-                  << QString::number(profile.behavior.sessionRefreshInterval);
-    }
-    if (capabilities.autoRelogin && profile.behavior.autoRelogin)
-    {
-        arguments << "-auto-relogin";
     }
     appendOption(arguments, "-bind-interface", profile.behavior.bindInterface);
     if (profile.behavior.autoDetectInterface)

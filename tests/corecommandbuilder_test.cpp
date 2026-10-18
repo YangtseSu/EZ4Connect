@@ -364,60 +364,6 @@ bool omitsDisabledDebugArtifacts()
     );
 }
 
-bool passesOptionalKnobsOnlyToACoreThatAdvertisesThem()
-{
-    ConnectionProfile profile;
-    profile.endpoint.protocol = "atrust";
-    profile.behavior.keepAliveInterval = 30;
-    profile.behavior.sessionRefreshInterval = 120;
-    profile.behavior.autoRelogin = true;
-
-    // Without a probe result nothing is passed: a core that does not know a flag
-    // exits instead of ignoring it.
-    const CoreCommand withoutCapabilities = CoreCommandBuilder::build(profile);
-    if (expectEqual(
-            withoutCapabilities.arguments,
-            {"-protocol", "atrust"},
-            "passesOptionalKnobsOnlyToACoreThatAdvertisesThem/withoutCapabilities"
-        ) == false)
-    {
-        return false;
-    }
-
-    CoreCapabilities capabilities;
-    capabilities.keepAliveInterval = true;
-    capabilities.sessionRefreshInterval = true;
-    capabilities.autoRelogin = true;
-    const CoreCommand command = CoreCommandBuilder::build(profile, {}, capabilities);
-    return expectEqual(
-        command.arguments,
-        {"-protocol",
-         "atrust",
-         "-keep-alive-interval",
-         "30",
-         "-session-refresh-interval",
-         "120",
-         "-auto-relogin"},
-        "passesOptionalKnobsOnlyToACoreThatAdvertisesThem/withCapabilities"
-    );
-}
-
-bool omitsOptionalKnobsLeftAtTheirDefaults()
-{
-    ConnectionProfile profile;
-    profile.endpoint.protocol = "atrust";
-
-    CoreCapabilities capabilities;
-    capabilities.keepAliveInterval = true;
-    capabilities.sessionRefreshInterval = true;
-    capabilities.autoRelogin = true;
-    const CoreCommand command = CoreCommandBuilder::build(profile, {}, capabilities);
-    return expectEqual(
-        command.arguments,
-        {"-protocol", "atrust"},
-        "omitsOptionalKnobsLeftAtTheirDefaults"
-    );
-}
 }
 
 int main(int argc, char *argv[])
@@ -436,8 +382,6 @@ int main(int argc, char *argv[])
         && keepsAutomaticKeepAliveTargetOutOfCommand()
         && passesDisableKeepAliveWhenTurnedOff()
         && omitsKeepAliveTargetWhenUrlModeHasNoTarget()
-        && omitsDisabledDebugArtifacts()
-        && passesOptionalKnobsOnlyToACoreThatAdvertisesThem()
-        && omitsOptionalKnobsLeftAtTheirDefaults();
+        && omitsDisabledDebugArtifacts();
     return passed ? 0 : 1;
 }
