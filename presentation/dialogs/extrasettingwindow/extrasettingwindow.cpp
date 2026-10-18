@@ -54,13 +54,18 @@ ExtraSettingWindow::ExtraSettingWindow(QDialog *parent) :
 
 				QStringList customProxyDomainsList = ui->proxyTextEdit->toPlainText().split("\n");
 
-                emit applied(
-                    tcpPortForwardingList.join(","),
-                    udpPortForwardingList.join(","),
-                    customDnsList.join(","),
-                    customProxyDomainsList.join(","),
-                    ui->extraArgTextEdit->toPlainText().replace("\n", " ")
-                );
+                ExtraSettings settings;
+                settings.tcpPortForwarding = tcpPortForwardingList.join(",");
+                settings.udpPortForwarding = udpPortForwardingList.join(",");
+                settings.customDns = customDnsList.join(",");
+                settings.customProxyDomains = customProxyDomainsList.join(",");
+                settings.extraArguments =
+                    ui->extraArgTextEdit->toPlainText().replace("\n", " ");
+                settings.sessionRefreshInterval = ui->sessionRefreshSpinBox->value();
+                settings.keepAliveInterval = ui->keepAliveSpinBox->value();
+                settings.autoRelogin = ui->autoReloginCheckBox->isChecked();
+
+                emit applied(settings);
             });
 
 }
@@ -70,9 +75,12 @@ ExtraSettingWindow::~ExtraSettingWindow()
     delete ui;
 }
 
-void ExtraSettingWindow::setup(const QString& tcpPortForwarding, const QString& udpPortForwarding, const QString& customDns, const QString& customProxyDomains, const QString& extraArguments)
+void ExtraSettingWindow::setup(
+    const ExtraSettings &settings,
+    const CoreCapabilities &capabilities
+)
 {
-    QStringList tcpPortForwardingList = tcpPortForwarding.split(",");
+    QStringList tcpPortForwardingList = settings.tcpPortForwarding.split(",");
 
     for (const auto &forwarding: tcpPortForwardingList)
     {
@@ -86,7 +94,7 @@ void ExtraSettingWindow::setup(const QString& tcpPortForwarding, const QString& 
         }
     }
 
-    QStringList udpPortForwardingList = udpPortForwarding.split(",");
+    QStringList udpPortForwardingList = settings.udpPortForwarding.split(",");
 
     for (const auto &forwarding: udpPortForwardingList)
     {
@@ -100,7 +108,7 @@ void ExtraSettingWindow::setup(const QString& tcpPortForwarding, const QString& 
         }
     }
 
-    QStringList customDnsList = customDns.split(",");
+    QStringList customDnsList = settings.customDns.split(",");
 
 	for (const auto& hosts : customDnsList)
 	{
@@ -114,12 +122,33 @@ void ExtraSettingWindow::setup(const QString& tcpPortForwarding, const QString& 
 		}
 	}
 
-	QStringList customProxyDomainsList = customProxyDomains.split(",");
+	QStringList customProxyDomainsList = settings.customProxyDomains.split(",");
 
-	for (const auto& domain : customProxyDomainsList)
+	for (const auto &domain : customProxyDomainsList)
 	{
 		ui->proxyTextEdit->append(domain.trimmed());
 	}
 
-	ui->extraArgTextEdit->setPlainText(extraArguments);
+	ui->extraArgTextEdit->setPlainText(settings.extraArguments);
+
+    ui->sessionRefreshSpinBox->setValue(settings.sessionRefreshInterval);
+    ui->keepAliveSpinBox->setValue(settings.keepAliveInterval);
+    ui->autoReloginCheckBox->setChecked(settings.autoRelogin);
+
+    // A knob the running core does not advertise cannot be passed, so its control
+    // is shown disabled with the reason instead of silently doing nothing. The
+    // values stay as they are: another core may support them.
+    const QString unsupported = "当前核心不支持该参数";
+    for (const QPair<QWidget *, bool> &control : QList<QPair<QWidget *, bool>>{
+             {ui->sessionRefreshSpinBox, capabilities.sessionRefreshInterval},
+             {ui->keepAliveSpinBox, capabilities.keepAliveInterval},
+             {ui->autoReloginCheckBox, capabilities.autoRelogin},
+         })
+    {
+        control.first->setEnabled(control.second);
+        if (!control.second)
+        {
+            control.first->setToolTip(unsupported);
+        }
+    }
 }

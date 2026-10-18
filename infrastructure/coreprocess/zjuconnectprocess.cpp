@@ -1,6 +1,7 @@
 #include "zjuconnectprocess.h"
 #include "infrastructure/coreprocess/corecommandbuilder.h"
 #include "infrastructure/coreprocess/consoleoutputdecoder.h"
+#include "infrastructure/coreprocess/coreexecutable.h"
 #include "infrastructure/coreprocess/coreoutputparser.h"
 #include "infrastructure/platform/privileges.h"
 #include "infrastructure/storage/applicationpaths.h"
@@ -244,7 +245,11 @@ void ZjuConnectProcess::start(const ConnectionProfile &profile)
     runtimePaths.debugPcapFile = debugPaths.pcapFile;
     runtimePaths.debugTlsLogFile = debugPaths.tlsLogFile;
 
-    const CoreCommand command = CoreCommandBuilder::build(profile, runtimePaths);
+    // The optional flags go only to a core that advertises them, and the probe is
+    // cached per core path: one extra process per session at most.
+    const CoreCapabilities capabilities =
+        coreCapabilitiesFromFlags(CoreExecutable::supportedFlags());
+    const CoreCommand command = CoreCommandBuilder::build(profile, runtimePaths, capabilities);
     qInfo().noquote() << "VPN 启动！参数：" + command.loggableCommandLine();
 
     if (!profile.credentials.totpSecret.isEmpty())

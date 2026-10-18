@@ -211,6 +211,14 @@ if(BUILD_TESTING)
     target_link_libraries(sessionstatus_test Qt::Core)
     add_test(NAME sessionstatus_test COMMAND sessionstatus_test)
 
+    add_executable(coreexecutable_test
+        tests/coreexecutable_test.cpp
+        infrastructure/coreprocess/coreexecutable.cpp
+    )
+    target_include_directories(coreexecutable_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(coreexecutable_test Qt::Core)
+    add_test(NAME coreexecutable_test COMMAND coreexecutable_test)
+
     add_executable(systemproxysession_test
         tests/systemproxysession_test.cpp
         application/systemproxysession.cpp

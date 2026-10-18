@@ -67,6 +67,11 @@ struct ConnectionBehavior
     bool skipDomainResource = false;
     bool disableServerConfig = false;
     bool disableZjuConfig = false;
+    // 0 means the cadence stays the core's own, which is also what a core without
+    // these flags does.
+    int sessionRefreshInterval = 0;
+    int keepAliveInterval = 0;
+    bool autoRelogin = false;
 };
 
 struct DebugOptions

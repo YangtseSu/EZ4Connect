@@ -5,6 +5,7 @@
 #include <QStringList>
 
 #include "core/connectionprofile.h"
+#include "core/corecapabilities.h"
 
 struct CoreRuntimePaths
 {
@@ -27,7 +28,14 @@ struct CoreCommand
 class CoreCommandBuilder
 {
 public:
-    static CoreCommand build(const ConnectionProfile &profile, const CoreRuntimePaths &runtimePaths = {});
+    // `capabilities` is what the core being started advertises; the optional
+    // knobs are only passed when the corresponding capability is set, and the
+    // default (nothing) keeps every caller that does not probe safe.
+    static CoreCommand build(
+        const ConnectionProfile &profile,
+        const CoreRuntimePaths &runtimePaths = {},
+        const CoreCapabilities &capabilities = {}
+    );
 };
 
 #endif // CORECOMMANDBUILDER_H
