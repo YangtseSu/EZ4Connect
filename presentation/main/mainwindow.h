@@ -67,6 +67,8 @@ private:
 
     QString sessionReasonSuffix() const;
 
+    QString reconnectDetailText() const;
+
     void updateProfileSummary();
 
     void showNotification(

@@ -10,6 +10,7 @@
 #include "application/applicationconstants.h"
 #include "application/defaultsettings.h"
 #include "core/connectionprofile.h"
+#include "core/connectionsessionstate.h"
 #include "infrastructure/platform/autostart.h"
 #include "infrastructure/coreprocess/coreexecutable.h"
 #include "infrastructure/storage/applicationpaths.h"
@@ -245,6 +246,10 @@ void SettingWindow::loadSettings()
     ui->checkUpdateAfterStartCheckBox->setChecked(settings->value("Common/CheckUpdateAfterStart").toBool());
     ui->autoSetProxyCheckBox->setChecked(settings->value("Common/AutoSetProxy").toBool());
     ui->reconnectTimeSpinBox->setValue(settings->value("Common/ReconnectTime").toInt());
+    ui->reconnectTimeSpinBox->setToolTip(
+        QString("首次重连前的等待秒数，此后每次等待加倍，最多尝试 %1 次。")
+            .arg(ReconnectPolicy{}.maxAttempts)
+    );
     ui->autoReconnectCheckBox->setChecked(settings->value("Common/AutoReconnect").toBool());
 	ui->systemProxyBypassLineEdit->setText(settings->value("Common/SystemProxyBypass").toString());
     ui->suppressProxyOverrideWarningCheckBox->setChecked(settings->value("Common/SuppressProxyOverrideWarning", false).toBool());

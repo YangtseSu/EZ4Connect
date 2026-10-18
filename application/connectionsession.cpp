@@ -122,6 +122,21 @@ bool ConnectionSession::isActive() const
     return sessionState.isActive();
 }
 
+int ConnectionSession::reconnectDelayMs() const
+{
+    return sessionState.reconnectDelayMs();
+}
+
+int ConnectionSession::reconnectAttempt() const
+{
+    return sessionState.reconnectAttempt();
+}
+
+int ConnectionSession::reconnectAttemptLimit() const
+{
+    return sessionState.reconnectAttemptLimit();
+}
+
 int ConnectionSession::reloginCode() const
 {
     return sessionState.reloginCode();

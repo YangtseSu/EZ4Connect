@@ -24,6 +24,11 @@ public:
 
     ConnectionState state() const;
     bool isActive() const;
+    // The ladder the reconnect timer is walking: the pending retry's delay, its
+    // number, and the budget it is counted against.
+    int reconnectDelayMs() const;
+    int reconnectAttempt() const;
+    int reconnectAttemptLimit() const;
     // The portal's code from the last "requires reauthentication" line, or 0.
     int reloginCode() const;
     // What the core last reported about the session and about its keep-alive.

@@ -480,7 +480,7 @@ void MainWindow::updateConnectionState(ConnectionState state)
     case ConnectionState::Reconnecting:
         propertyValue = "reconnecting";
         title = "正在重连";
-        detail = "连接中断，正在按当前策略重新尝试。";
+        detail = reconnectDetailText();
         break;
     case ConnectionState::Interrupted:
         propertyValue = "failed";
@@ -646,6 +646,28 @@ void MainWindow::updateTrayTooltip(const QString &title)
     }
 
     trayIcon->setToolTip(lines.join('\n'));
+}
+
+QString MainWindow::reconnectDetailText() const
+{
+    if (connectionSession == nullptr)
+    {
+        return "连接中断，正在按当前策略重新尝试。";
+    }
+
+    const int attempt = connectionSession->reconnectAttempt();
+    const int limit = connectionSession->reconnectAttemptLimit();
+    if (attempt <= 0 || limit <= 0)
+    {
+        return "连接中断，正在按当前策略重新尝试。";
+    }
+
+    // The ladder is the strategy, so the user sees which rung it is on - and that
+    // it will end instead of retrying forever.
+    return QString("连接中断，正在重连（第 %1/%2 次，%3 秒后重试）。")
+        .arg(attempt)
+        .arg(limit)
+        .arg(connectionSession->reconnectDelayMs() / 1000.0, 0, 'g', 3);
 }
 
 void MainWindow::updateProfileSummary()

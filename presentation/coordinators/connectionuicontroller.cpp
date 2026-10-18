@@ -113,7 +113,14 @@ ConnectionUiController::ConnectionUiController(
         connectionSession,
         &ConnectionSession::reconnectScheduled,
         this,
-        [](int) { qInfo().noquote() << "正在尝试重新连接..."; }
+        [connectionSession](int delayMs)
+        {
+            qInfo().noquote()
+                << QString("正在尝试重新连接（第 %1/%2 次，%3 毫秒后）...")
+                       .arg(connectionSession->reconnectAttempt())
+                       .arg(connectionSession->reconnectAttemptLimit())
+                       .arg(delayMs);
+        }
     );
     connect(
         connectionSession,
@@ -416,6 +423,8 @@ void ConnectionUiController::startConnection(
     profile.program = CoreExecutable::path();
     const ReconnectPolicy reconnectPolicy{
         settings()->value("Common/AutoReconnect", false).toBool(),
+        // The ladder's base: "自动重连（秒）" is the first retry's delay, and every
+        // further attempt doubles it up to the policy's own budget.
         settings()->value("Common/ReconnectTime", 1).toInt() * 1000
     };
     if (!connectionSession->start(profile, reconnectPolicy)
