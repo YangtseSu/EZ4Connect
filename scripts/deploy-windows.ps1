@@ -23,7 +23,9 @@ Copy-Item -Path "../$BuildDir/Release/$TargetName.exe" -Destination .
 
 # Download and extract zju-connect
 $ZjuReleasePath = if ($Nightly -eq "true") { "download/nightly" } else { "latest/download" }
-$ZjuUrl = "https://github.com/Mythologyli/zju-connect/releases/$ZjuReleasePath/zju-connect-windows-$Architecture.zip"
+# Fork-only: the GUI packages the core from the same fork, so the keep-alive and
+# session fixes the GUI drives are present in the bundle.
+$ZjuUrl = "https://github.com/YangtseSu/zju-connect/releases/$ZjuReleasePath/zju-connect-windows-$Architecture.zip"
 $ZjuZipPath = "zju-connect-windows-$Architecture.zip"
 Invoke-WebRequest -Uri $ZjuUrl -OutFile $ZjuZipPath
 Expand-Archive -Path $ZjuZipPath -DestinationPath . -Force
