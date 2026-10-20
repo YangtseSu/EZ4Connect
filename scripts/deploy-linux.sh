@@ -54,7 +54,9 @@ if [ "$NIGHTLY" = "true" ]; then
     ZJU_RELEASE_PATH="download/nightly"
 fi
 
-wget -O "zju-connect-linux-$ZJU_ARCH.zip" "https://github.com/Mythologyli/zju-connect/releases/$ZJU_RELEASE_PATH/zju-connect-linux-$ZJU_ARCH.zip"
+# Fork-only: the GUI packages the core from the same fork, so the keep-alive
+# and session fixes the GUI drives are present in the bundle.
+wget -O "zju-connect-linux-$ZJU_ARCH.zip" "https://github.com/YangtseSu/zju-connect/releases/$ZJU_RELEASE_PATH/zju-connect-linux-$ZJU_ARCH.zip"
 unzip -o "zju-connect-linux-$ZJU_ARCH.zip"
 cp zju-connect AppDir/usr/bin/
 rm "zju-connect-linux-$ZJU_ARCH.zip"
